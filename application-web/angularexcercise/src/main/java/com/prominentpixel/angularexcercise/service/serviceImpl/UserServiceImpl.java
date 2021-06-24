@@ -30,7 +30,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDTO createUser(UserDTO userDTO) {
-
         if (userDAO.findByEmail(userDTO.getEmail()).isPresent()) {
             throw new PPException(CommonConstants.USER_ALREADY_EXIST);
         }
@@ -43,12 +42,13 @@ public class UserServiceImpl implements UserService {
         userObj.setStatus(userDTO.getStatus());
         userObj.setPassword(userDTO.getPassword());
         userObj.setNewCompany(userDTO.getNewCompany());
-        userDAO.save(userObj);
+        User saveUser = userDAO.saveAndFlush(userObj);
+        userDTO.setId(saveUser.getId());
         return userDTO;
     }
 
     @Override
-    public Map<String, Object> getUsers(int pageNumber, int pageSize, String searchTerm, String sortColumn, String sortDirection) {
+    public Map<String, Object> getUsers(int offset, int size, String searchTerm, String sortColumn, String sortDirection) {
         Sort sort;
         if (sortDirection.equals("desc")) {
             sort = Sort.by(Sort.Direction.DESC, sortColumn);
@@ -56,7 +56,7 @@ public class UserServiceImpl implements UserService {
             sort = Sort.by(Sort.Direction.ASC, sortColumn);
         }
 
-        Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
+        Pageable pageable = PageRequest.of(offset, size, sort);
 
         Page<User> userListPage = userDAO.findAllByUser(pageable, searchTerm);
         Long totalCount = userListPage.getTotalElements();
@@ -73,7 +73,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUserById(Long id) {
-        System.out.println("Delete Operation" + id);
         userDAO.deActivateUser(id);
     }
 
@@ -101,4 +100,9 @@ public class UserServiceImpl implements UserService {
         return userMapper.convertUser(fetchedUser);
     }
 
+    @Override
+    public List<UserDTO> getSimpleUsers() {
+        List<User> usersList = userDAO.getSimpleUsers();
+        return userMapper.getUserPaginations(usersList);
+    }
 }
